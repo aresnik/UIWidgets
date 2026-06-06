@@ -1,0 +1,1 @@
+Widgets library written in C++ and SDL3.
