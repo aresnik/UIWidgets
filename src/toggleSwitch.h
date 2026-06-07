@@ -8,6 +8,7 @@ class ToggleSwitch
 public:
     // Constructor requiring dimensions and position
     ToggleSwitch(SDL_FRect bounds);
+    ~ToggleSwitch();
 
     // Processes mouse clicks to update the switch state
     void handleEvent(const SDL_Event &event);
@@ -24,12 +25,18 @@ public:
     // Returns the current ON/OFF state
     bool isSwitchToggled() const;
 
+    float alpha = 1.0f;
+
 private:
-    void drawCircle(SDL_Renderer *renderer, float centerX, float centerY, float radius, SDL_Color color);
-    void drawPill(SDL_Renderer *renderer, SDL_FRect rect, SDL_Color color);
+    void generateTextures(SDL_Renderer *renderer);
+    void cleanup();
+
     SDL_FRect bounds;
     float m_handlePos; // 0.0 (OFF) to 1.0 (ON) for animation
     bool isToggled;
+
+    SDL_Texture *m_pillTex = nullptr;
+    SDL_Texture *m_handleTex = nullptr;
 };
 
 #endif // TOGGLE_SWITCH_H

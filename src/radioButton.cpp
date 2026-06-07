@@ -34,6 +34,11 @@ void RadioButton::render(SDL_Renderer *renderer)
     if (!visible)
         return;
 
+    if (!m_outlineTex || !m_fillTex)
+    {
+        generateTextures(renderer);
+    }
+
     float centerX = rect.x + rect.w / 2.0f;
     float centerY = rect.y + rect.h / 2.0f;
     float radius = rect.w / 2.0f;
@@ -44,19 +49,18 @@ void RadioButton::render(SDL_Renderer *renderer)
     Uint8 colorIntensity = enabled ? 255 : 120;
 
     // 1. Draw outer outline circle
-    SDL_Color outlineColor = {colorIntensity, colorIntensity, colorIntensity, static_cast<Uint8>(255 * displayAlpha)};
-    drawCircle(renderer, centerX, centerY, radius, outlineColor, false);
+    SDL_SetTextureColorMod(m_outlineTex, colorIntensity, colorIntensity, colorIntensity);
+    SDL_SetTextureAlphaMod(m_outlineTex, static_cast<Uint8>(255 * displayAlpha));
+    SDL_RenderTexture(renderer, m_outlineTex, NULL, &rect);
 
     // 2. Draw inner filled circle if selected
     if (m_isSelected)
     {
-        // Selection Blue: (0, 150, 255). We dim the RGB components as well.
-        SDL_Color blue = {
-            0,
-            static_cast<Uint8>(150 * dimFactor),
-            static_cast<Uint8>(255 * dimFactor),
-            static_cast<Uint8>(255 * displayAlpha)};
-        drawCircle(renderer, centerX, centerY, radius - 4.0f, blue, true);
+        SDL_SetTextureColorMod(m_fillTex, 0, (Uint8)(150 * dimFactor), (Uint8)(255 * dimFactor));
+        SDL_SetTextureAlphaMod(m_fillTex, static_cast<Uint8>(255 * displayAlpha));
+        float innerRad = radius - 4.0f;
+        SDL_FRect innerRect = {centerX - innerRad, centerY - innerRad, innerRad * 2, innerRad * 2};
+        SDL_RenderTexture(renderer, m_fillTex, NULL, &innerRect);
     }
 
     // 3. Render the associated label
@@ -113,39 +117,82 @@ bool RadioButton::isMouseInside(float mouseX, float mouseY) const
             mouseY >= rect.y && mouseY <= rect.y + rect.h);
 }
 
-void RadioButton::drawCircle(SDL_Renderer *renderer, float centerX, float centerY, float radius, SDL_Color color, bool filled)
+void RadioButton::generateTextures(SDL_Renderer *renderer)
 {
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    cleanup();
 
-    // Iterate slightly outside the radius to capture the anti-aliased fade
-    for (float dy = -radius - 1.0f; dy <= radius + 1.0f; dy += 1.0f)
+    int size = (int)rect.w;
+    float radius = size / 2.0f;
+    float center = size / 2.0f;
+
+    // 1. Generate Outline Ring Texture (White/Tintable)
+    SDL_Surface *outlineSurf = SDL_CreateSurface(size, size, SDL_PIXELFORMAT_RGBA32);
+    float thickness = 1.2f;
+
+    for (int y = 0; y < size; y++)
     {
-        for (float dx = -radius - 1.0f; dx <= radius + 1.0f; dx += 1.0f)
+        for (int x = 0; x < size; x++)
         {
+            float dx = (float)x + 0.5f - center;
+            float dy = (float)y + 0.5f - center;
+            float dist = SDL_sqrtf(dx * dx + dy * dy);
 
-            float distSq = dx * dx + dy * dy;
-            float dist = SDL_sqrtf(distSq);
-            float coverage = 0.0f;
+            // Create a smooth ring coverage factor
+            float coverage = SDL_clamp(thickness - SDL_fabsf(dist - (radius - thickness / 2.0f)), 0.0f, 1.0f);
 
-            if (filled)
-            {
-                // Smoothly fade alpha based on distance from the edge
-                coverage = SDL_clamp(radius - dist + 0.5f, 0.0f, 1.0f);
-            }
-            else
-            {
-                // Create a smooth ring (approx 1.5px thickness)
-                float thickness = 1.2f;
-                coverage = SDL_clamp(thickness - SDL_fabsf(dist - (radius - thickness / 2.0f)), 0.0f, 1.0f);
-            }
-
-            if (coverage > 0.0f)
-            {
-                SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b,
-                                       static_cast<Uint8>(color.a * coverage));
-                SDL_RenderPoint(renderer, centerX + dx, centerY + dy);
-            }
+            Uint8 *pixel = (Uint8 *)outlineSurf->pixels + y * outlineSurf->pitch + x * 4;
+            pixel[0] = 255;
+            pixel[1] = 255;
+            pixel[2] = 255;
+            pixel[3] = (Uint8)(255 * coverage);
         }
+    }
+    m_outlineTex = SDL_CreateTextureFromSurface(renderer, outlineSurf);
+    SDL_DestroySurface(outlineSurf);
+
+    // 2. Generate Inner Fill Texture
+    float fillRadius = radius - 4.0f;
+    int fillSize = (int)(fillRadius * 2.0f) + 2;
+    SDL_Surface *fillSurf = SDL_CreateSurface(fillSize, fillSize, SDL_PIXELFORMAT_RGBA32);
+    float fillCenter = fillSize / 2.0f;
+
+    for (int y = 0; y < fillSize; y++)
+    {
+        for (int x = 0; x < fillSize; x++)
+        {
+            float dx = (float)x + 0.5f - fillCenter;
+            float dy = (float)y + 0.5f - fillCenter;
+            float dist = SDL_sqrtf(dx * dx + dy * dy);
+
+            float coverage = SDL_clamp(fillRadius - dist + 0.5f, 0.0f, 1.0f);
+
+            Uint8 *pixel = (Uint8 *)fillSurf->pixels + y * fillSurf->pitch + x * 4;
+            pixel[0] = 255;
+            pixel[1] = 255;
+            pixel[2] = 255;
+            pixel[3] = (Uint8)(255 * coverage);
+        }
+    }
+    m_fillTex = SDL_CreateTextureFromSurface(renderer, fillSurf);
+    SDL_DestroySurface(fillSurf);
+
+    if (m_outlineTex)
+        SDL_SetTextureBlendMode(m_outlineTex, SDL_BLENDMODE_BLEND);
+    if (m_fillTex)
+        SDL_SetTextureBlendMode(m_fillTex, SDL_BLENDMODE_BLEND);
+}
+
+void RadioButton::cleanup()
+{
+    if (m_outlineTex)
+    {
+        SDL_DestroyTexture(m_outlineTex);
+        m_outlineTex = nullptr;
+    }
+    if (m_fillTex)
+    {
+        SDL_DestroyTexture(m_fillTex);
+        m_fillTex = nullptr;
     }
 }
 
