@@ -1,7 +1,7 @@
 /*
  * radioButton.h
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #ifndef RADIOBUTTON_H

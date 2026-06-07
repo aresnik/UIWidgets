@@ -1,7 +1,7 @@
 /*
  * radioButton.cpp
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #include "radioButton.h"

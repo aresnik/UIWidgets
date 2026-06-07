@@ -1,7 +1,7 @@
 /*
  * dialogBox.cpp
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #include "dialogBox.h"

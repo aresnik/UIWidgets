@@ -1,7 +1,7 @@
 /*
  * textureButton.h
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #ifndef TEXTUREBUTTON_H

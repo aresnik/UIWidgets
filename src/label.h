@@ -1,7 +1,7 @@
 /*
  * label.h
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #ifndef LABEL_H

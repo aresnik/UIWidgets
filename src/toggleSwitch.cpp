@@ -1,3 +1,9 @@
+/*
+ * toggleSwitch.h
+ *
+ *      Author: alex@glassoniongames.com
+ */
+
 #include "toggleSwitch.h"
 #include <iostream>
 

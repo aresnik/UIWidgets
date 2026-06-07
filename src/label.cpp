@@ -1,7 +1,7 @@
 /*
  * label.cpp
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #include "label.h"

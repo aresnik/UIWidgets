@@ -1,3 +1,9 @@
+/*
+ * toggleSwitch.h
+ *
+ *      Author: alex@glassoniongames.com
+ */
+
 #ifndef TOGGLE_SWITCH_H
 #define TOGGLE_SWITCH_H
 

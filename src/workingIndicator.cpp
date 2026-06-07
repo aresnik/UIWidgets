@@ -1,7 +1,7 @@
 /*
  * workingIndicator.cpp
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #include "workingIndicator.h"

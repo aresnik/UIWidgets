@@ -1,7 +1,7 @@
 /*
  * textureButton.cpp
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #include "textureButton.h"

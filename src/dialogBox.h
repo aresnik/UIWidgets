@@ -1,7 +1,7 @@
 /*
  * dialogBox.h
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #ifndef DIALOGBOX_H

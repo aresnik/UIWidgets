@@ -1,7 +1,7 @@
 /*
  * workingIndicator.h
  *
- *      Author: alex@alexanderresnik.com
+ *      Author: alex@glassoniongames.com
  */
 
 #ifndef WORKINGINDICATOR_H

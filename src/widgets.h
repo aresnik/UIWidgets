@@ -2,7 +2,7 @@
 //=================================================================================
 // Name        : UIWidgets
 // Author      : Copyright 2026 Alexander Resnik
-// Email       : alex@alexanderresnik.com
+// Email       : alex@glassoniongames.com
 // Version     : 1.00
 // License     : MIT License
 // Description : UIWidgets is a library written in C++ and SDL3.
