@@ -42,7 +42,7 @@ private:
 
     TTF_Font *m_Font = nullptr;
     std::string m_Text;
-    SDL_Color m_Color;
+    SDL_Color m_Color{255, 255, 255, 255};
     SDL_Texture *m_Texture = nullptr;
     Alignment m_Alignment = ALIGN_LEFT;
 };

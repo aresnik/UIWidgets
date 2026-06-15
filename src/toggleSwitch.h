@@ -37,9 +37,9 @@ private:
     void generateTextures(SDL_Renderer *renderer);
     void cleanup();
 
-    SDL_FRect bounds;
-    float m_handlePos; // 0.0 (OFF) to 1.0 (ON) for animation
-    bool isToggled;
+    SDL_FRect bounds{0.0f, 0.0f, 0.0f, 0.0f};
+    float m_handlePos{0.0f}; // 0.0 (OFF) to 1.0 (ON) for animation
+    bool isToggled{false};
 
     SDL_Texture *m_pillTex = nullptr;
     SDL_Texture *m_handleTex = nullptr;
