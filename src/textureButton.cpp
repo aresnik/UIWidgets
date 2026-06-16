@@ -96,13 +96,19 @@ void TextureButton::render(SDL_Renderer *renderer)
     if (!visible)
         return;
 
+    // Force the button back to a normal state if it gets disabled while hovered or pressed
+    if (!enabled)
+        m_currentState = STATE_NORMAL;
+
     SDL_Texture *textureToDraw = m_textures[m_currentState];
     if (textureToDraw)
     {
         // Apply global alpha and dim if disabled
-        Uint8 mod = enabled ? 255 : 160;
+        Uint8 mod = enabled ? 255 : 100;
         SDL_SetTextureColorMod(textureToDraw, mod, mod, mod);
         SDL_SetTextureAlphaMod(textureToDraw, static_cast<Uint8>(alpha * 255.0f));
+        float displayAlpha = enabled ? alpha : alpha * 0.4f;
+        SDL_SetTextureAlphaMod(textureToDraw, static_cast<Uint8>(displayAlpha * 255.0f));
 
         SDL_FRect drawRect = rect;
         // Apply hover scaling (Juice!)
@@ -122,6 +128,29 @@ void TextureButton::render(SDL_Renderer *renderer)
 
 void TextureButton::updateLayout(float x, float y, float w, float h)
 {
+    if (m_textures[STATE_NORMAL])
+    {
+        float texW = 0.0f, texH = 0.0f;
+        SDL_GetTextureSize(m_textures[STATE_NORMAL], &texW, &texH);
+
+        if (texW > 0.0f && texH > 0.0f)
+        {
+            // Calculate scaling to fit within the provided space while maintaining intrinsic aspect ratio
+            float scale = std::min(w / texW, h / texH);
+
+            float finalW = texW * scale;
+            float finalH = texH * scale;
+
+            // Center the button in the available flex space
+            float finalX = x + (w - finalW) / 2.0f;
+            float finalY = y + (h - finalH) / 2.0f;
+
+            rect = {finalX, finalY, finalW, finalH};
+            return;
+        }
+    }
+
+    // Fallback if no texture is loaded yet
     rect = {x, y, w, h};
 }
 

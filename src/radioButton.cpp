@@ -58,7 +58,7 @@ void RadioButton::render(SDL_Renderer *renderer)
     {
         SDL_SetTextureColorMod(m_fillTex, 0, (Uint8)(150 * dimFactor), (Uint8)(255 * dimFactor));
         SDL_SetTextureAlphaMod(m_fillTex, static_cast<Uint8>(255 * displayAlpha));
-        float innerRad = radius - 4.0f;
+        float innerRad = radius * 0.7f;
         SDL_FRect innerRect = {centerX - innerRad, centerY - innerRad, innerRad * 2, innerRad * 2};
         SDL_RenderTexture(renderer, m_fillTex, NULL, &innerRect);
     }
@@ -105,16 +105,30 @@ bool RadioButton::handleEvent(const SDL_Event *event, bool &isOver)
 
 void RadioButton::updateLayout(float x, float y, float w, float h)
 {
-    rect = {x, y, w, h};
-    // Position label 10 pixels to the right of the radio circle
-    m_labelWidget->updateLayout(x + w + 10.0f, y, w * 10.0f, h);
+    // h represents the slot height. Scale diameter to leave natural vertical padding.
+    float diameter = h * 0.5f;
+
+    // If size changes, cached textures are no longer valid and must be regenerated
+    if (diameter != rect.w || diameter != rect.h)
+    {
+        cleanup();
+    }
+
+    // Center the circle vertically within the slot
+    float circleY = y + (h - diameter) / 2.0f;
+    rect = {x, circleY, diameter, diameter};
+
+    // Position label to the right of the circle with proportional padding
+    float padding = diameter * 0.5f;
+    m_labelWidget->updateLayout(x + diameter + padding, y, std::max(0.0f, w - diameter - padding), h);
 }
 
 bool RadioButton::isMouseInside(float mouseX, float mouseY) const
 {
-    // Hit test includes the circle and the likely area of the label (approx 150px width)
-    return (mouseX >= rect.x && mouseX <= rect.x + rect.w + 150.0f &&
-            mouseY >= rect.y && mouseY <= rect.y + rect.h);
+    // Hit test includes the circle and the actual dynamically scaled label area
+    float totalWidth = rect.w + (m_labelWidget->rect.w > 0.0f ? m_labelWidget->rect.w + (rect.w * 0.5f) : 150.0f);
+    return (mouseX >= rect.x && mouseX <= rect.x + totalWidth &&
+            mouseY >= rect.y - 10.0f && mouseY <= rect.y + rect.h + 10.0f);
 }
 
 void RadioButton::generateTextures(SDL_Renderer *renderer)
@@ -122,12 +136,17 @@ void RadioButton::generateTextures(SDL_Renderer *renderer)
     cleanup();
 
     int size = (int)rect.w;
+    if (size <= 0)
+        return;
+
     float radius = size / 2.0f;
     float center = size / 2.0f;
 
     // 1. Generate Outline Ring Texture (White/Tintable)
     SDL_Surface *outlineSurf = SDL_CreateSurface(size, size, SDL_PIXELFORMAT_RGBA32);
-    float thickness = 1.2f;
+    float thickness = std::max(1.2f, radius * 0.15f);
+
+    float ringCenterRadius = radius - thickness - 1.0f;
 
     for (int y = 0; y < size; y++)
     {
@@ -138,7 +157,7 @@ void RadioButton::generateTextures(SDL_Renderer *renderer)
             float dist = SDL_sqrtf(dx * dx + dy * dy);
 
             // Create a smooth ring coverage factor
-            float coverage = SDL_clamp(thickness - SDL_fabsf(dist - (radius - thickness / 2.0f)), 0.0f, 1.0f);
+            float coverage = SDL_clamp(thickness - SDL_fabsf(dist - ringCenterRadius), 0.0f, 1.0f);
 
             Uint8 *pixel = (Uint8 *)outlineSurf->pixels + y * outlineSurf->pitch + x * 4;
             pixel[0] = 255;
@@ -151,7 +170,7 @@ void RadioButton::generateTextures(SDL_Renderer *renderer)
     SDL_DestroySurface(outlineSurf);
 
     // 2. Generate Inner Fill Texture
-    float fillRadius = radius - 4.0f;
+    float fillRadius = radius * 0.7f;
     int fillSize = (int)(fillRadius * 2.0f) + 2;
     SDL_Surface *fillSurf = SDL_CreateSurface(fillSize, fillSize, SDL_PIXELFORMAT_RGBA32);
     float fillCenter = fillSize / 2.0f;
@@ -257,8 +276,14 @@ void RadioButtonGroup::render(SDL_Renderer *renderer)
 void RadioButtonGroup::updateLayout(float x, float y, float w, float h)
 {
     rect = {x, y, w, h};
+    if (m_buttons.empty())
+        return;
+
+    // Distribute the total available height evenly into slots for each button
+    float slotHeight = h / m_buttons.size();
+
     for (size_t i = 0; i < m_buttons.size(); ++i)
     {
-        m_buttons[i]->updateLayout(x, y + (i * m_spacing), w, h);
+        m_buttons[i]->updateLayout(x, y + (i * slotHeight), w, slotHeight);
     }
 }

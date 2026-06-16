@@ -37,7 +37,11 @@ public:
 #include "label.h"
 #include "radioButton.h"
 #include "textureButton.h"
+#include "spacer.h"
 #include "workingIndicator.h"
 #include "toggleSwitch.h"
+#include "boxContainer.h"
+#include "stackContainer.h"
+#include "aspectRatioContainer.h"
 
 #endif

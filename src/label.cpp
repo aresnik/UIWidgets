@@ -42,10 +42,6 @@ void Label::updateTexture(SDL_Renderer* renderer) {
 
     // Convert surface to GPU-accelerated SDL_Texture
     m_Texture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    
-    // Default the widget rect size to the rendered text dimensions
-    rect.w = static_cast<float>(textSurface->w);
-    rect.h = static_cast<float>(textSurface->h);
 
     // Clean up surface
     SDL_DestroySurface(textSurface);
@@ -65,38 +61,46 @@ void Label::setColor(SDL_Renderer* renderer, SDL_Color color) {
     updateTexture(renderer);
 }
 
-void Label::render(SDL_Renderer* renderer) {
-    if (!visible || !m_Texture) return;
+void Label::updateLayout(float x, float y, float w, float h) {
+    if (!m_Texture) {
+        rect = {x, y, w, h};
+        return;
+    }
 
-    // Calculate actual drawing position based on alignment within the widget's 'rect'
-    SDL_FRect drawRect = rect;
-    
-    // If the widget rect is wider than the text texture (due to manual layout), adjust x
-    float texW = 0, texH = 0;
+    float texW = 0.0f, texH = 0.0f;
     SDL_GetTextureSize(m_Texture, &texW, &texH);
 
-    // Calculate scaling to fit within rect while maintaining aspect ratio
-    float scale = 1.0f;
-    if (texW > rect.w || texH > rect.h) {
-        scale = SDL_min(rect.w / texW, rect.h / texH);
+    if (texW > 0.0f && texH > 0.0f) {
+        // Calculate scaling to perfectly fit the flex box space while preserving aspect ratio
+        float scale = SDL_min(w / texW, h / texH);
+
+        float finalW = texW * scale;
+        float finalH = texH * scale;
+
+        // Handle Horizontal Alignment
+        float finalX = x; // ALIGN_LEFT
+        if (m_Alignment == ALIGN_CENTER) {
+            finalX = x + (w - finalW) / 2.0f;
+        } else if (m_Alignment == ALIGN_RIGHT) {
+            finalX = x + (w - finalW);
+        }
+
+        // Vertically center within the slot
+        float finalY = y + (h - finalH) / 2.0f;
+
+        rect = {finalX, finalY, finalW, finalH};
+    } else {
+        rect = {x, y, w, h};
     }
+}
 
-    drawRect.w = texW * scale;
-    drawRect.h = texH * scale;
-
-    if (m_Alignment == ALIGN_CENTER) {
-        drawRect.x += (rect.w - drawRect.w) / 2.0f;
-    } else if (m_Alignment == ALIGN_RIGHT) {
-        drawRect.x += (rect.w - drawRect.w);
-    }
-
-    // Vertically center within the rect.h
-    drawRect.y += (rect.h - drawRect.h) / 2.0f;
+void Label::render(SDL_Renderer* renderer) {
+    if (!visible || !m_Texture) return;
 
     // Apply global alpha transparency from base class
     SDL_SetTextureAlphaMod(m_Texture, static_cast<Uint8>(alpha * 255.0f));
 
-    SDL_RenderTexture(renderer, m_Texture, nullptr, &drawRect);
+    SDL_RenderTexture(renderer, m_Texture, nullptr, &rect);
 }
 
 bool Label::handleEvent(const SDL_Event* event, bool& isOver) {

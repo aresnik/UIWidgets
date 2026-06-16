@@ -26,6 +26,20 @@ void DialogBox::addChild(Widget *child)
 void DialogBox::updateLayout(float x, float y, float w, float h)
 {
     rect = {x, y, w, h};
+
+    // Update children with padding calculated from percentages
+    float padLeftPixels = w * m_padLeft;
+    float padRightPixels = w * m_padRight;
+    float padTopPixels = h * m_padTop;
+    float padBottomPixels = h * m_padBottom;
+
+    float childX = x + padLeftPixels;
+    float childY = y + padTopPixels;
+    float childW = w - (padLeftPixels + padRightPixels);
+    float childH = h - (padTopPixels + padBottomPixels);
+
+    for (auto* child : m_children)
+        child->updateLayout(childX, childY, childW, childH);
 }
 
 void DialogBox::render(SDL_Renderer *renderer)

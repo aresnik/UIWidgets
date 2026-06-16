@@ -34,6 +34,7 @@ public:
     void setAlignment(Alignment align) { m_Alignment = align; }
 
     virtual void render(SDL_Renderer *renderer) override;
+    virtual void updateLayout(float x, float y, float w, float h) override;
     virtual bool handleEvent(const SDL_Event *event, bool &isOver) override;
 
 private:

@@ -8,46 +8,79 @@
 #include <iostream>
 
 ToggleSwitch::ToggleSwitch(SDL_FRect bounds)
-    : bounds(bounds), m_handlePos(0.0f), isToggled(false) {}
+    : m_handlePos(0.0f), isToggled(false)
+{
+    rect = bounds;
+}
 
 ToggleSwitch::~ToggleSwitch()
 {
     cleanup();
 }
 
-void ToggleSwitch::handleEvent(const SDL_Event &event)
+bool ToggleSwitch::handleEvent(const SDL_Event *event, bool &isOver)
 {
-    if (event.type != SDL_EVENT_MOUSE_BUTTON_DOWN)
-    {
-        return;
-    }
+    isOver = false;
+    if (!visible || !enabled)
+        return false;
 
-    if (event.button.button != SDL_BUTTON_LEFT)
-    {
-        return;
-    }
+    float mouseX = -1.0f, mouseY = -1.0f;
 
-    float mouseX = event.button.x;
-    float mouseY = event.button.y;
+    if (event->type == SDL_EVENT_MOUSE_MOTION)
+    {
+        mouseX = event->motion.x;
+        mouseY = event->motion.y;
+    }
+    else if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN || event->type == SDL_EVENT_MOUSE_BUTTON_UP)
+    {
+        mouseX = event->button.x;
+        mouseY = event->button.y;
+    }
 
     // Check if the click coordinates fall inside the rectangle bounds
-    if (mouseX >= bounds.x && mouseX <= bounds.x + bounds.w &&
-        mouseY >= bounds.y && mouseY <= bounds.y + bounds.h)
+    if (mouseX >= 0.0f)
     {
+        if (mouseX >= rect.x && mouseX <= rect.x + rect.w &&
+            mouseY >= rect.y && mouseY <= rect.y + rect.h)
+        {
+            isOver = true;
+        }
+    }
 
+    if (isOver && event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && event->button.button == SDL_BUTTON_LEFT)
+    {
         isToggled = !isToggled;
         std::cout << "Toggle state changed to: " << (isToggled ? "ON" : "OFF") << "\n";
+        return true;
     }
+    return false;
 }
 
 void ToggleSwitch::updateLayout(float x, float y, float w, float h)
 {
+    // Maintain a standard pill aspect ratio (2.5x width)
+    float aspect = 2.5f;
+
+    float switchH = h;
+    float switchW = switchH * aspect;
+
+    // If it exceeds the available width, constrain it by width instead
+    if (switchW > w)
+    {
+        switchW = w;
+        switchH = switchW / aspect;
+    }
+
+    // Center the pill horizontally and vertically within the provided flex space
+    float cx = x + (w - switchW) / 2.0f;
+    float cy = y + (h - switchH) / 2.0f;
+
     // If size changes, cached textures are no longer valid
-    if (w != bounds.w || h != bounds.h)
+    if (switchW != rect.w || switchH != rect.h)
     {
         cleanup();
     }
-    bounds = {x, y, w, h};
+    rect = {cx, cy, switchW, switchH};
 }
 
 void ToggleSwitch::setToggled(bool toggled)
@@ -58,6 +91,9 @@ void ToggleSwitch::setToggled(bool toggled)
 
 void ToggleSwitch::render(SDL_Renderer *renderer)
 {
+    if (!visible)
+        return;
+
     if (!m_pillTex || !m_handleTex)
     {
         generateTextures(renderer);
@@ -73,18 +109,20 @@ void ToggleSwitch::render(SDL_Renderer *renderer)
     Uint8 b = static_cast<Uint8>(150.0f + (255.0f - 150.0f) * m_handlePos);
 
     // Draw background pill with dynamic color modulation
-    SDL_SetTextureColorMod(m_pillTex, r, g, b);
+    Uint8 dim = enabled ? 255 : 120;
+    SDL_SetTextureColorMod(m_pillTex, (r * dim) / 255, (g * dim) / 255, (b * dim) / 255);
     SDL_SetTextureAlphaMod(m_pillTex, static_cast<Uint8>(alpha * 255.0f));
-    SDL_RenderTexture(renderer, m_pillTex, NULL, &bounds);
+    SDL_RenderTexture(renderer, m_pillTex, NULL, &rect);
 
-    float radius = (bounds.h / 2.0f) - 2.0f; // Padding of 2 pixels
-    float centerY = bounds.y + (bounds.h / 2.0f);
-    float leftX = bounds.x + (bounds.h / 2.0f);
-    float rightX = bounds.x + bounds.w - (bounds.h / 2.0f);
+    float radius = (rect.h / 2.0f) - 2.0f; // Padding of 2 pixels
+    float centerY = rect.y + (rect.h / 2.0f);
+    float leftX = rect.x + (rect.h / 2.0f);
+    float rightX = rect.x + rect.w - (rect.h / 2.0f);
     float centerX = leftX + (rightX - leftX) * m_handlePos;
 
     // Draw the circular handle
     SDL_FRect handleRect = {centerX - radius, centerY - radius, radius * 2.0f, radius * 2.0f};
+    SDL_SetTextureColorMod(m_handleTex, dim, dim, dim);
     SDL_SetTextureAlphaMod(m_handleTex, static_cast<Uint8>(alpha * 255.0f));
     SDL_RenderTexture(renderer, m_handleTex, NULL, &handleRect);
 }
@@ -92,19 +130,19 @@ void ToggleSwitch::render(SDL_Renderer *renderer)
 void ToggleSwitch::generateTextures(SDL_Renderer *renderer)
 {
     cleanup();
-    float radius = bounds.h / 2.0f;
+    float radius = rect.h / 2.0f;
 
     // 1. Generate White Pill Surface (Tintable)
-    SDL_Surface *pillSurf = SDL_CreateSurface((int)bounds.w, (int)bounds.h, SDL_PIXELFORMAT_RGBA32);
-    for (int y = 0; y < (int)bounds.h; y++)
+    SDL_Surface *pillSurf = SDL_CreateSurface((int)rect.w, (int)rect.h, SDL_PIXELFORMAT_RGBA32);
+    for (int y = 0; y < (int)rect.h; y++)
     {
-        for (int x = 0; x < (int)bounds.w; x++)
+        for (int x = 0; x < (int)rect.w; x++)
         {
             float fx = (float)x + 0.5f, fy = (float)y + 0.5f, dist = 0;
             if (fx < radius)
                 dist = SDL_sqrtf(SDL_powf(fx - radius, 2) + SDL_powf(fy - radius, 2));
-            else if (fx > bounds.w - radius)
-                dist = SDL_sqrtf(SDL_powf(fx - (bounds.w - radius), 2) + SDL_powf(fy - radius, 2));
+            else if (fx > rect.w - radius)
+                dist = SDL_sqrtf(SDL_powf(fx - (rect.w - radius), 2) + SDL_powf(fy - radius, 2));
             else
                 dist = SDL_fabsf(fy - radius);
 
@@ -120,7 +158,7 @@ void ToggleSwitch::generateTextures(SDL_Renderer *renderer)
     SDL_DestroySurface(pillSurf);
 
     // 2. Generate White Handle Surface
-    float hRadius = (bounds.h / 2.0f) - 2.0f;
+    float hRadius = (rect.h / 2.0f) - 2.0f;
     int hSize = (int)(hRadius * 2.0f) + 2;
     SDL_Surface *handleSurf = SDL_CreateSurface(hSize, hSize, SDL_PIXELFORMAT_RGBA32);
     float hCenter = hSize / 2.0f;
