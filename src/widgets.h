@@ -43,5 +43,6 @@ public:
 #include "boxContainer.h"
 #include "stackContainer.h"
 #include "aspectRatioContainer.h"
+#include "slider.h"
 
 #endif
