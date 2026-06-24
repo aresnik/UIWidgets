@@ -42,6 +42,9 @@ void Label::updateTexture(SDL_Renderer* renderer) {
 
     // Convert surface to GPU-accelerated SDL_Texture
     m_Texture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    if (m_Texture) {
+        SDL_SetTextureScaleMode(m_Texture, SDL_SCALEMODE_LINEAR);
+    }
 
     // Clean up surface
     SDL_DestroySurface(textSurface);
